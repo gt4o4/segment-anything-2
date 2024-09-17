@@ -6,6 +6,8 @@
 
 import os
 import warnings
+from collections import namedtuple
+from pathlib import Path
 from threading import Thread
 
 import numpy as np
@@ -107,13 +109,13 @@ class AsyncVideoFrameLoader:
     """
 
     def __init__(
-        self,
-        img_paths,
-        image_size,
-        offload_video_to_cpu,
-        img_mean,
-        img_std,
-        compute_device,
+            self,
+            img_paths,
+            image_size,
+            offload_video_to_cpu,
+            img_mean,
+            img_std,
+            compute_device,
     ):
         self.img_paths = img_paths
         self.image_size = image_size
@@ -169,14 +171,21 @@ class AsyncVideoFrameLoader:
         return len(self.images)
 
 
+class TensorWithXattr(torch.Tensor):
+    def __new__(cls, *args, xattr=None, **kwargs):
+        ret = super().__new__(cls, *args, **kwargs)
+        ret.xattr = xattr
+        return ret
+
+
 def load_video_frames(
-    video_path,
-    image_size,
-    offload_video_to_cpu,
-    img_mean=(0.485, 0.456, 0.406),
-    img_std=(0.229, 0.224, 0.225),
-    async_loading_frames=False,
-    compute_device=torch.device("cuda"),
+        video_path,
+        image_size,
+        offload_video_to_cpu,
+        img_mean=(0.485, 0.456, 0.406),
+        img_std=(0.229, 0.224, 0.225),
+        async_loading_frames=False,
+        compute_device=torch.device("cuda"),
 ):
     """
     Load the video frames from video_path. The frames are resized to image_size as in
@@ -194,7 +203,7 @@ def load_video_frames(
             img_std=img_std,
             compute_device=compute_device,
         )
-    elif is_str and os.path.isdir(video_path):
+    elif isinstance(video_path, str | os.PathLike) and os.path.isdir(video_path):
         return load_video_frames_from_jpg_images(
             video_path=video_path,
             image_size=image_size,
@@ -227,7 +236,7 @@ def load_video_frames_from_jpg_images(
 
     You can load a frame asynchronously by setting `async_loading_frames` to `True`.
     """
-    if isinstance(video_path, str) and os.path.isdir(video_path):
+    if isinstance(video_path, str | os.PathLike) and os.path.isdir(video_path):
         jpg_folder = video_path
     else:
         raise NotImplementedError(
@@ -241,11 +250,11 @@ def load_video_frames_from_jpg_images(
         )
 
     frame_names = [
-        p
+        Path(p)
         for p in os.listdir(jpg_folder)
         if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
     ]
-    frame_names.sort(key=lambda p: int(os.path.splitext(p)[0]))
+    frame_names.sort(key=getattr(jpg_folder, "get_sort_key", lambda p: int(os.path.splitext(os.fspath(p))[0])))
     num_frames = len(frame_names)
     if num_frames == 0:
         raise RuntimeError(f"no images found in {jpg_folder}")
@@ -265,7 +274,7 @@ def load_video_frames_from_jpg_images(
         return lazy_images, lazy_images.video_height, lazy_images.video_width
 
     images = torch.zeros(num_frames, 3, image_size, image_size, dtype=torch.float32)
-    for n, img_path in enumerate(tqdm(img_paths, desc="frame loading (JPEG)")):
+    for n, img_path in enumerate(tqdm(img_paths, desc="frame loading (JPEG)", disable=True)):
         images[n], video_height, video_width = _load_img_as_tensor(img_path, image_size)
     if not offload_video_to_cpu:
         images = images.to(compute_device)
@@ -274,6 +283,8 @@ def load_video_frames_from_jpg_images(
     # normalize by mean and std
     images -= img_mean
     images /= img_std
+    images = TensorWithXattr(images, xattr=namedtuple(
+        'FramesWithNames', 'frame_names jpg_folder')(frame_names, jpg_folder))
     return images, video_height, video_width
 
 
