@@ -255,6 +255,7 @@ def load_video_frames_from_jpg_images(
         if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
     ]
     frame_names.sort(key=getattr(jpg_folder, "get_sort_key", lambda p: int(os.path.splitext(os.fspath(p))[0])))
+
     num_frames = len(frame_names)
     if num_frames == 0:
         raise RuntimeError(f"no images found in {jpg_folder}")
@@ -275,7 +276,8 @@ def load_video_frames_from_jpg_images(
 
     images = torch.zeros(num_frames, 3, image_size, image_size, dtype=torch.float32)
     for n, img_path in enumerate(tqdm(img_paths, desc="frame loading (JPEG)", disable=True)):
-        images[n], video_height, video_width = _load_img_as_tensor(img_path, image_size)
+        images[n], video_height, video_width = getattr(jpg_folder, 'load_img_as_tensor', _load_img_as_tensor)(
+            img_path, image_size)
     if not offload_video_to_cpu:
         images = images.to(compute_device)
         img_mean = img_mean.to(compute_device)
