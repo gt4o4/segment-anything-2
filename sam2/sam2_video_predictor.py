@@ -19,6 +19,8 @@ from sam2.utils.misc import concat_points, fill_holes_in_mask_scores, load_video
 class SAM2VideoPredictor(SAM2Base):
     """The predictor class to handle user interactions and manage inference states."""
 
+    load_video_frames = staticmethod(load_video_frames)
+
     def __init__(
         self,
         fill_hole_area=0,
@@ -48,7 +50,7 @@ class SAM2VideoPredictor(SAM2Base):
     ):
         """Initialize an inference state."""
         compute_device = self.device  # device of the model
-        images, video_height, video_width = load_video_frames(
+        images, video_height, video_width = self.load_video_frames(
             video_path=video_path,
             image_size=self.image_size,
             offload_video_to_cpu=offload_video_to_cpu,
