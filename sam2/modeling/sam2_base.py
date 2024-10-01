@@ -20,8 +20,9 @@ NO_OBJ_SCORE = -1024.0
 
 
 class SAM2Base(torch.nn.Module):
-    PromptEncoder = staticmethod(PromptEncoder)
-    MaskDecoder = staticmethod(MaskDecoder)
+    PromptEncoder = PromptEncoder
+    MaskDecoder = MaskDecoder
+    TwoWayTransformer = TwoWayTransformer
 
     def __init__(
         self,
@@ -225,7 +226,7 @@ class SAM2Base(torch.nn.Module):
         )
         self.sam_mask_decoder = self.MaskDecoder(
             num_multimask_outputs=3,
-            transformer=TwoWayTransformer(
+            transformer=self.TwoWayTransformer(
                 depth=2,
                 embedding_dim=self.sam_prompt_embed_dim,
                 mlp_dim=2048,
