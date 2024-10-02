@@ -40,7 +40,6 @@ class SAM2VideoPredictor(SAM2Base):
         self.clear_non_cond_mem_around_input = clear_non_cond_mem_around_input
         self.add_all_frames_to_correct_as_cond = add_all_frames_to_correct_as_cond
 
-    @torch.inference_mode()
     def init_state(
         self,
         video_path,
@@ -159,7 +158,6 @@ class SAM2VideoPredictor(SAM2Base):
         """Get the total number of unique object ids received so far in this session."""
         return len(inference_state["obj_idx_to_id"])
 
-    @torch.inference_mode()
     def add_new_points_or_box(
         self,
         inference_state,
@@ -298,7 +296,6 @@ class SAM2VideoPredictor(SAM2Base):
         """Deprecated method. Please use `add_new_points_or_box` instead."""
         return self.add_new_points_or_box(*args, **kwargs)
 
-    @torch.inference_mode()
     def add_new_mask(
         self,
         inference_state,
@@ -478,7 +475,6 @@ class SAM2VideoPredictor(SAM2Base):
 
         return consolidated_out
 
-    @torch.inference_mode()
     def propagate_in_video_preflight(self, inference_state):
         """Prepare inference_state and consolidate temporary outputs before tracking."""
         # Check and make sure that every object has received input points or masks.
@@ -544,7 +540,6 @@ class SAM2VideoPredictor(SAM2Base):
             for frame_idx in obj_output_dict["cond_frame_outputs"]:
                 obj_output_dict["non_cond_frame_outputs"].pop(frame_idx, None)
 
-    @torch.inference_mode()
     def propagate_in_video(
         self,
         inference_state,
