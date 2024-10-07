@@ -14,22 +14,22 @@ from sam2.modeling.sam2_utils import LayerNorm2d, MLP
 
 class MaskDecoder(nn.Module):
     def __init__(
-        self,
-        *,
-        transformer_dim: int,
-        transformer: nn.Module,
-        num_multimask_outputs: int = 3,
-        activation: Type[nn.Module] = nn.GELU,
-        iou_head_depth: int = 3,
-        iou_head_hidden_dim: int = 256,
-        use_high_res_features: bool = False,
-        iou_prediction_use_sigmoid=False,
-        dynamic_multimask_via_stability=False,
-        dynamic_multimask_stability_delta=0.05,
-        dynamic_multimask_stability_thresh=0.98,
-        pred_obj_scores: bool = False,
-        pred_obj_scores_mlp: bool = False,
-        use_multimask_token_for_obj_ptr: bool = False,
+            self,
+            *,
+            transformer_dim: int,
+            transformer: nn.Module,
+            num_multimask_outputs: int = 3,
+            activation: Type[nn.Module] = nn.GELU,
+            iou_head_depth: int = 3,
+            iou_head_hidden_dim: int = 256,
+            use_high_res_features: bool = False,
+            iou_prediction_use_sigmoid=False,
+            dynamic_multimask_via_stability=False,
+            dynamic_multimask_stability_delta=0.05,
+            dynamic_multimask_stability_thresh=0.98,
+            pred_obj_scores: bool = False,
+            pred_obj_scores_mlp: bool = False,
+            use_multimask_token_for_obj_ptr: bool = False,
     ) -> None:
         """
         Predicts masks given an image and prompt embeddings, using a
@@ -97,9 +97,9 @@ class MaskDecoder(nn.Module):
             sigmoid_output=iou_prediction_use_sigmoid,
         )
         if self.pred_obj_scores:
-            self.pred_obj_score_head = nn.Linear(transformer_dim, 1)
-            if pred_obj_scores_mlp:
-                self.pred_obj_score_head = MLP(transformer_dim, transformer_dim, 1, 3)
+            self.pred_obj_score_head = MLP(
+                transformer_dim, transformer_dim, 1, 3) if pred_obj_scores_mlp else nn.Linear(
+                transformer_dim, 1)
 
         # When outputting a single mask, optionally we can dynamically fall back to the best
         # multimask output token if the single mask output token gives low stability scores.
@@ -108,14 +108,14 @@ class MaskDecoder(nn.Module):
         self.dynamic_multimask_stability_thresh = dynamic_multimask_stability_thresh
 
     def forward(
-        self,
-        image_embeddings: torch.Tensor,
-        image_pe: torch.Tensor,
-        sparse_prompt_embeddings: torch.Tensor,
-        dense_prompt_embeddings: torch.Tensor,
-        multimask_output: bool,
-        repeat_image: bool,
-        high_res_features: Optional[List[torch.Tensor]] = None,
+            self,
+            image_embeddings: torch.Tensor,
+            image_pe: torch.Tensor,
+            sparse_prompt_embeddings: torch.Tensor,
+            dense_prompt_embeddings: torch.Tensor,
+            multimask_output: bool,
+            repeat_image: bool,
+            high_res_features: Optional[List[torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Predict masks given image and prompt embeddings.
@@ -166,13 +166,13 @@ class MaskDecoder(nn.Module):
         return masks, iou_pred, sam_tokens_out, object_score_logits
 
     def predict_masks(
-        self,
-        image_embeddings: torch.Tensor,
-        image_pe: torch.Tensor,
-        sparse_prompt_embeddings: torch.Tensor,
-        dense_prompt_embeddings: torch.Tensor,
-        repeat_image: bool,
-        high_res_features: Optional[List[torch.Tensor]] = None,
+            self,
+            image_embeddings: torch.Tensor,
+            image_pe: torch.Tensor,
+            sparse_prompt_embeddings: torch.Tensor,
+            dense_prompt_embeddings: torch.Tensor,
+            repeat_image: bool,
+            high_res_features: Optional[List[torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predicts masks. See 'forward' for more details."""
         # Concatenate output tokens
@@ -204,7 +204,7 @@ class MaskDecoder(nn.Module):
             src = image_embeddings
         src = src + dense_prompt_embeddings
         assert (
-            image_pe.size(0) == 1
+                image_pe.size(0) == 1
         ), "image_pe should have size 1 in batch dim (from `get_dense_pe()`)"
         pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
         b, c, h, w = src.shape
@@ -212,7 +212,7 @@ class MaskDecoder(nn.Module):
         # Run the transformer
         hs, src = self.transformer(src, pos_src, tokens)
         iou_token_out = hs[:, s, :]
-        mask_tokens_out = hs[:, s + 1 : (s + 1 + self.num_mask_tokens), :]
+        mask_tokens_out = hs[:, s + 1: (s + 1 + self.num_mask_tokens), :]
 
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, h, w)
