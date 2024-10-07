@@ -244,11 +244,9 @@ class SAM2Base(torch.nn.Module):
         )
         if self.use_obj_ptrs_in_encoder:
             # a linear projection on SAM output tokens to turn them into object pointers
-            self.obj_ptr_proj = torch.nn.Linear(self.hidden_dim, self.hidden_dim)
-            if self.use_mlp_for_obj_ptr_proj:
-                self.obj_ptr_proj = MLP(
-                    self.hidden_dim, self.hidden_dim, self.hidden_dim, 3
-                )
+            self.obj_ptr_proj = MLP(
+                self.hidden_dim, self.hidden_dim, self.hidden_dim, 3
+            ) if self.use_mlp_for_obj_ptr_proj else torch.nn.Linear(self.hidden_dim, self.hidden_dim)
         else:
             self.obj_ptr_proj = torch.nn.Identity()
         if self.proj_tpos_enc_in_obj_ptrs:
@@ -373,7 +371,7 @@ class SAM2Base(torch.nn.Module):
 
         # convert masks from possibly bfloat16 (or float16) to float32
         # (older PyTorch versions before 2.1 don't support `interpolate` on bf16)
-        low_res_multimasks = low_res_multimasks.float()
+        # low_res_multimasks = low_res_multimasks.float()
         high_res_multimasks = F.interpolate(
             low_res_multimasks,
             size=(self.image_size, self.image_size),
