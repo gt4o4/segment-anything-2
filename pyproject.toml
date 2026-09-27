@@ -1,6 +1,8 @@
 [build-system]
+# setup.py builds the sam2._C CUDA extension against the build env's torch, which must be the
+# runtime torch (the C++ ABI differs between releases).
 requires = [
     "setuptools>=61.0",  
-    "torch>=2.5.1",
+    "torch==2.13.0+cu130",
     ]
 build-backend = "setuptools.build_meta"
